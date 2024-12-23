@@ -1,120 +1,105 @@
 async function wait(ms) {
-    return new Promise((res, rej)=>{
+    return new Promise((res, rej) => {
         setTimeout(res, ms);
-    })
+    });
+}
+
+// Web Audio API setup
+function setupAudioContext() {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioContext.createAnalyser();
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    return { audioContext, analyser, dataArray };
 }
 
 async function start() {
-    let music = new Audio("wavetapper.mp3")
-    
-    await new Promise((res, rej)=>{
-        music.addEventListener("canplaythrough", (e)=>{
-            res()
-        })
-    })
+    let music = new Audio("wavetapper.mp3");
 
-    console.log("loaded")
+    await new Promise((res, rej) => {
+        music.addEventListener("canplaythrough", (e) => {
+            res();
+        });
+    });
 
-    music.play()
+    console.log("loaded");
+    music.play();
 
-    await wait(2000)
+    const { audioContext, analyser, dataArray } = setupAudioContext();
+    const source = audioContext.createMediaElementSource(music);
+    source.connect(analyser);
+    analyser.connect(audioContext.destination);
 
-    var height = window.innerHeight
+    let height = window.innerHeight;
+    let width = 250;
+    let winHeight = 100;
+    const red = window.open("Windows/red.html", "_Blank", "popup=true,left=10,top=10");
+    red.resizeTo(500, 500);
+    red.moveTo(window.innerWidth / 2 - width, height / 2 + winHeight);
+    let windows = [red];
+    let directionY = 1; // Move up and down
+    let beatThreshold = 200; // Adjust threshold for detecting beats
+    let prevTime = Date.now();
 
-    var width = 250
-    var height = 100
-    const red = window.open("Windows/red.html", "_Blank","popup=true,left=10,top=10")
-    red.resizeTo(500,500)
-    red.moveTo(window.innerWidth / 2 - width, height / 2 + height)
- 
-    width += 50
-    height += 50
+    // Function to move windows with the music
+    async function moveWindows() {
+        while (!music.paused) {
+            analyser.getByteFrequencyData(dataArray);
+            const averageFrequency = dataArray.reduce((a, b) => a + b) / dataArray.length;
 
-    await wait(9000)
+            // Detect beat
+            const currentTime = Date.now();
+            if (currentTime - prevTime > 100) {
+                prevTime = currentTime;
 
-    const green = window.open("Windows/green.html", "_Blank","popup=true,left=10,top=10")
-    green.resizeTo(500,500)
-    green.moveTo(window.innerWidth / 2 - width, height / 2 + height)
- 
-    width += 50
-    height += 50
+                // If beat is detected (average frequency exceeds threshold)
+                if (averageFrequency > beatThreshold) {
+                    // Make windows bounce
+                    directionY *= -1; // Change direction
+                }
+            }
 
-    await wait(8000)
+            // Move all windows (bounce effect)
+            windows.forEach((win) => {
+                let rect = win.document.body.getBoundingClientRect();
+                let yPos = rect.top + directionY * 10; // Move window up or down
+                if (yPos > window.innerHeight - rect.height || yPos < 0) {
+                    directionY *= -1; // Reverse direction when hitting the edge
+                }
+                win.moveTo(win.screenX, yPos);
+            });
 
-    const blue = window.open("Windows/blue.html", "_Blank","popup=true,left=10,top=10")
-    blue.resizeTo(500,500)
-    blue.moveTo(window.innerWidth / 2 - width, height / 2 + height)
- 
-    width += 50
-    height += 50
+            await wait(100);
+        }
+    }
 
-    await wait(8500)
+    await wait(2000);
 
-    const white = window.open("Windows/white.html", "_Blank","popup=true,left=10,top=10")
-    white.resizeTo(500,500)
-    white.moveTo(window.innerWidth / 2 - width, height / 2 + height)
- 
-    width += 50
-    height += 50
+    // Create more windows with floating effect
+    const createWindow = async (color, delay) => {
+        await wait(delay);
+        const newWindow = window.open(`Windows/${color}.html`, "_Blank", "popup=true,left=10,top=10");
+        newWindow.resizeTo(500, 500);
+        newWindow.moveTo(window.innerWidth / 2 - width, height / 2 + winHeight);
+        windows.push(newWindow);
+        width += 50;
+        winHeight += 50;
+    };
 
-    await wait(4500)
+    await createWindow("green", 9000);
+    await createWindow("blue", 8000);
+    await createWindow("white", 8500);
+    await createWindow("purple", 4500);
+    await createWindow("coral", 20000);
+    await createWindow("teal", 9000);
+    await createWindow("yellow", 9000);
+    await createWindow("black", 18000);
+    await createWindow("orange", 40000);
 
-    const purple = window.open("Windows/purple.html", "_Blank","popup=true,left=10,top=10")
-    purple.resizeTo(500,500)
-    purple.moveTo(window.innerWidth / 2 - width, height / 2 + height)
- 
-    width += 50
-    height += 50
+    moveWindows(); // Start moving windows with the beat
 
-    await wait(20000)
+    await wait(5000); // Keep moving for a while
 
-    const coral = window.open("Windows/coral.html", "_Blank","popup=true,left=10,top=10")
-    coral.resizeTo(500,500)
-    coral.moveTo(window.innerWidth / 2 - width, height / 2 + height)
- 
-    width += 50
-    height += 50
-
-    await wait(9000)
-
-    const teal = window.open("Windows/teal.html", "_Blank","popup=true,left=10,top=10")
-    teal.resizeTo(500,500)
-    teal.moveTo(window.innerWidth / 2 - width, height / 2 + height)
- 
-    width += 50
-    height += 50
-
-    await wait(9000)
-
-    const yellow = window.open("Windows/yellow.html", "_Blank","popup=true,left=10,top=10")
-    yellow.resizeTo(500,500)
-    yellow.moveTo(window.innerWidth / 2 - width, height / 2 + height)
- 
-    width += 50
-    height += 50
-
-    await wait(18000)
-
-    const black = window.open("Windows/black.html", "_Blank","popup=true,left=10,top=10")
-    black.resizeTo(500,500)
-    black.moveTo(window.innerWidth / 2 - width, height / 2 + height)
- 
-
-
-    await wait(40000)
-
-    const orange = window.open("Windows/orange.html", "_Blank","popup=true,left=10,top=10")
-    orange.resizeTo(500,500)
-    orange.moveTo(window.innerWidth / 2 - width, height / 2 + height)
-
-    await wait(5000)
-    window.close("Windows/orange.html")
-    window.close("Windows/yellow.html")
-    window.close("Windows/teal.html")
-    window.close("Windows/coral.html")
-    window.close("Windows/purple.html")
-    window.close("Windows/white.html")
-    window.close("Windows/blue.html")
-    window.close("Windows/green.html")
-    window.close("Windows/red.html")
+    // Close all windows
+    windows.forEach(win => win.close());
 }
